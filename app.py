@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import stripe
+import json
 
 app = Flask(__name__)
 CORS(app, resources={r"*": {"origins": "*"}})
@@ -9,8 +10,11 @@ stripe.api_key = "sk_test_51OqjevGueFI8a5iZU7p2CPvQcQ89PjXNPZ4UHzJN559DrDaZlSnsf
 
 @app.route('/payment-intent', methods=['POST'])
 def payment_sheet():
-    data = request.get_json()
-    if data['authKey'] != "abc":
+    # try:
+        # data = request.get_json()
+    # except Exception:
+    #     data = json.loads(request.data.decode('utf-8').replace('\xa0', ''))
+    if 'abc' != request.get_data().decode('utf-8').split('=')[-1].split('&')[0]:
         return jsonify({'error': 'Invalid authKey'})
     # Use an existing Customer ID if this is a returning customer
     customer = stripe.Customer.create()
