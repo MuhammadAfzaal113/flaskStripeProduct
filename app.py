@@ -2,71 +2,38 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import stripe
 
-
 app = Flask(__name__)
 CORS(app, resources={r"*": {"origins": "*"}})
 stripe.api_key = "sk_test_51OqjevGueFI8a5iZU7p2CPvQcQ89PjXNPZ4UHzJN559DrDaZlSnsfraCymuRdNskAyUnCXRWSzTPT22yZIdsMLFl00RYM2MJcv"
 
 
-@app.route('/api/payment', methods=['POST'])
-def create_stripe_user():
-    """
-    Creates a new Stripe user with the given payment method and email.
-
-    Parameters:
-        p_method (str): The payment method to associate with the new user.
-        email (str): The email address of the new user.
-
-    Returns:
-        tuple: A tuple containing a string indicating the success status ('success' if successful, None otherwise) and the created customer object if successful, or a tuple containing None and the error message if unsuccessful.
-    """
+@app.route('/payment-intent', methods=['POST'])
+def payment_sheet():
     data = request.get_json()
-    p_method = data['payment_method_id']
-    amount = data['amount']
-    try:
-        customer = stripe.Customer.create(
-            payment_method=p_method
-        )
+    if data['authKey'] != "abc":
+        return jsonify({'error': 'Invalid authKey'})
+    # Use an existing Customer ID if this is a returning customer
+    customer = stripe.Customer.create()
+    ephemeralKey = stripe.EphemeralKey.create(
+        customer=customer['id'],
+        stripe_version='2020-08-27',
+    )
+    paymentIntent = stripe.PaymentIntent.create(
+        amount=1099,
+        currency='eur',
+        customer=customer['id'],
+        # In the latest version of the API, specifying the `automatic_payment_methods` parameter
+        # is optional because Stripe enables its functionality by default.
+        automatic_payment_methods={
+            'enabled': True,
+        },
+    )
+    return jsonify(paymentIntent=paymentIntent.client_secret,
+                   ephemeralKey=ephemeralKey.secret,
+                   customer=customer.id,
+                   publishableKey='pk_test_51OqjevGueFI8a5iZePhWA5uF1VRm8M4EepWfUc3GEC26vXvXkVB9pbdC4XBldLLZJjbb2mtZLHAqiI3ZXRuPfbWx00Ayl9gulj'
 
-        if customer:
-            if create_stripe_intent(customer, p_method, amount):
-                return jsonify({'message': 'Payment successful'}), 200
-        return jsonify({'message': 'Payment failed'}), 400
-    except Exception as e:
-        return jsonify({'message': 'Payment failed'}), 400
-
-
-def create_stripe_intent(customer, payment_method, amount):
-    """
-    Create a Stripe payment intent.
-
-    Args:
-        customer (str): The ID of the customer to associate the payment with.
-        payment_method (str): The ID of the payment method to use.
-        amount (float): The amount to charge, in USD.
-
-    Returns:
-        tuple: A tuple containing a string representing the status of the payment ('success' or None) and a PaymentIntent object.
-
-    Raises:
-        Exception: If there is an error creating the payment intent.
-
-    Example:
-        create_stripe_intent('customer_id', 'payment_method_id', 10.0)
-    """
-    try:
-        intent = stripe.PaymentIntent.create(
-            customer=customer,
-            payment_method=payment_method,
-            currency='usd',  # you can provide any currency you want
-            amount=int(float(amount) * 100),  # I modified the amount to distinguish payments
-            off_session=True,
-            confirm=True
-        )
-
-        return intent
-    except Exception as e:
-        return None, str(e)
+                   )
 
 
 if __name__ == '__main__':
