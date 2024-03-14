@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import sqlite3
 
 app = Flask(__name__)
+CORS(app, resources={r"*": {"origins": "*"}})
 DATABASE = 'products.db'
 
 
@@ -58,4 +60,4 @@ def add_product():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
